@@ -7,10 +7,11 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(value = Include.NON_NULL)
 @Component
-public class UsernameVO {
+public class FetchUserRolesInVO {
+    
     private String username;
-
-    public UsernameVO() {
+    
+    public FetchUserRolesInVO() {
         super();
     }
 

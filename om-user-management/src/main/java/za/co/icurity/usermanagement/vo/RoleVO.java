@@ -7,18 +7,24 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(value = Include.NON_NULL)
 @Component
-public class UsernameVO {
-    private String username;
+public class RoleVO {
 
-    public UsernameVO() {
+    private String memberOf;
+
+
+    public RoleVO() {
         super();
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
 
-    public String getUsername() {
-        return username;
-    }
+	public String getMemberOf() {
+		return memberOf;
+	}
+
+
+	public void setMemberOf(String memberOf) {
+		this.memberOf = memberOf;
+	}
+
+   
 }

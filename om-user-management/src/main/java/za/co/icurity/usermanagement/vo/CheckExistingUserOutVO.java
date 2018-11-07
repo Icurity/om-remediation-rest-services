@@ -7,18 +7,18 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(value = Include.NON_NULL)
 @Component
-public class UsernameVO {
-    private String username;
+public class CheckExistingUserOutVO extends StatusOutVO {
+    private String userExists;
 
-    public UsernameVO() {
+    public CheckExistingUserOutVO() {
         super();
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUserExists(String userExists) {
+        this.userExists = userExists;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUserExists() {
+        return userExists;
     }
 }
