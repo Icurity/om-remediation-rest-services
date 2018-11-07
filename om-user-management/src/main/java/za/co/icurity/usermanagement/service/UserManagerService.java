@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.naming.directory.DirContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -157,7 +159,29 @@ public class UserManagerService {
 			}
 		} catch (Exception ex) {
 			LOG.error(this+" Search error ");
-			ex.printStackTrace();
+		}
+		return false;
+	}
+	
+	public boolean checkExistingUserName(OIMClient oimClient, String username) {
+
+		List<User> users = null;
+		HashMap<String, Object> parameters = null;
+		Set<String> attrNames = null;
+		SearchCriteria criteria = new SearchCriteria("User Login", username, SearchCriteria.Operator.EQUAL);
+		attrNames = new HashSet<String>();
+		attrNames.add("Last Name");
+		attrNames.add("User Login");
+		try {
+			UserManager userManager_local = oimClient.getService(UserManager.class);
+			users = userManager_local.search(criteria, attrNames, parameters);
+			if (users != null && !users.isEmpty() && users.get(0) != null && users.get(0).getLastName() != null) {
+				return true;
+			} else {
+				return false;
+			}
+		} catch (Exception ex) {
+			LOG.error(this+" Search error ");
 		}
 		return false;
 	}
@@ -224,149 +248,11 @@ public class UserManagerService {
 		return statusOutVO;
 	}
 	
-	  public UserStatusVO oimUserStatus(OIMClient oimClient,UsernameVO usernameVO) {
-	       /* if (logger.isLoggable(Level.FINE)) {
-	            logger.entering(CLASS_NAME, "getUserStatus");
-	        }
-	        if (logger.isLoggable(Level.FINE)) {
-	            logger.logp(Level.FINE, CLASS_NAME, "getUserStatus", "__getUserStatus Begin__");
-	        }*/
-	        UserStatusVO userStatusVO = new UserStatusVO();
-	        Set<String> attrNames = null;
-
-	        attrNames = new HashSet<String>();
-	        attrNames.add("usr_change_pwd_at_next_logon");
-	        attrNames.add("usr_disabled");
-	        attrNames.add("migr_firstLogin");
-	        attrNames.add("usr_locked");
-	        attrNames.add("usr_login_attempts_ctr");
-
-	        // Login to OIM with proper credentials
-	       /* if (logger.isLoggable(Level.FINE)) {
-	            logger.logp(Level.FINE, CLASS_NAME, "getUserStatus", "__Login Begin__");
-	        }*/
-	      //  OIMClient oimClient = null;
-	      /*  try {
-	            Properties properties = getProperties();
-	            Hashtable<String, String> env = new Hashtable<String, String>();
-	            System.setProperty("java.security.auth.login.config", properties.getProperty("auth_conf"));
-	            System.setProperty("APPSERVER_TYPE", properties.getProperty("appserver_type"));
-	            System.setProperty("weblogic.Name", properties.getProperty("weblogic_name"));
-	            env.put(OIMClient.JAVA_NAMING_FACTORY_INITIAL, "weblogic.jndi.WLInitialContextFactory");
-	            env.put(OIMClient.JAVA_NAMING_PROVIDER_URL, properties.getProperty("oim_url"));
-	            oimClient = new OIMClient(env);
-	            oimClient.login(properties.getProperty("oim_username"), properties.getProperty("oim_password").toCharArray());
-	        } catch (LoginException ex) {
-	            if (logger.isLoggable(Level.SEVERE)) {
-	                logger.logp(Level.SEVERE, CLASS_NAME, "getUserStatus", "Error: " + ex.getMessage());
-	            }
-	            userStatusVO.setStatus("Error");
-	            userStatusVO.setErrorMessage("Exception while logging in. Please try again.");
-	            return userStatusVO;
-	        } catch (Exception e) {
-	            if (logger.isLoggable(Level.SEVERE)) {
-	                logger.logp(Level.SEVERE, CLASS_NAME, "getUserStatus", "Error: " + e.getMessage());
-	            }
-	            userStatusVO.setStatus("Error");
-	            userStatusVO.setErrorMessage("Exception while logging in. Please try again.");
-	            return userStatusVO;
-	        }
-	        if (logger.isLoggable(Level.FINE)) {
-	            logger.logp(Level.FINE, CLASS_NAME, "getUserStatus", "__Login End__");
-	        }
-*/
-	        // BEGIN ---- get Username from ssa id
-	        Set<String> attrName = null;
-	        String username = null;
-	        User users = null;
-	        attrName = new HashSet<String>();
-	        attrName.add("First Name");
-	        attrName.add("Last Name");
-	        attrName.add("User Login");
-	        UserManager userManager_local = oimClient.getService(UserManager.class);
-	        try {
-	            users = userManager_local.getDetails("User Login", usernameVO.getUsername(), attrName);
-	            if (users != null && users.getAttributes() != null && !users.getAttributes().isEmpty() && users.getAttributes().get("User Login") != null) {
-	                username = users.getAttributes().get("User Login").toString();
-	            }
-	        } catch (Exception ex) {
-	            try {
-	                users = userManager_local.getDetails("Employee Number", usernameVO.getUsername(), attrName);
-	                if (users != null && users.getAttributes() != null && !users.getAttributes().isEmpty() && users.getAttributes().get("User Login") != null) {
-	                    username = users.getAttributes().get("User Login").toString();
-	                }
-	            } catch (Exception exObj) {
-	               /* if (logger.isLoggable(Level.SEVERE)) {
-	                    logger.logp(Level.SEVERE, CLASS_NAME, "getUserStatus", "Error: " + exObj.getMessage());
-	                }*/
-	                userStatusVO.setStatus("Error");
-	                userStatusVO.setErrorMessage("No user found for username : " + usernameVO.getUsername());
-	                return userStatusVO;
-	            }
-	        }
-	        if (username == null || username.equals("Error")) {
-	            userStatusVO.setStatus("Error");
-	            userStatusVO.setErrorMessage("No user found for username : " + usernameVO.getUsername());
-	            return userStatusVO;
-	        }
-
-	        try {
-	            User user = userManager_local.getDetails("User Login", username, attrNames);
-	            if (user != null) {
-	                if (user.getAttribute("usr_change_pwd_at_next_logon") != null && user.getAttribute("usr_change_pwd_at_next_logon").toString() != null) {
-	                    if (user.getAttribute("usr_change_pwd_at_next_logon").toString().equals("0")) {
-	                        userStatusVO.setChangePasswordAtNextLogon("false");
-	                    } else if (user.getAttribute("usr_change_pwd_at_next_logon").toString().equals("1")) {
-	                        userStatusVO.setChangePasswordAtNextLogon("true");
-	                    }
-	                }
-	                if (user.getAttribute("usr_disabled") != null && user.getAttribute("usr_disabled").toString() != null) {
-	                    if (user.getAttribute("usr_disabled").toString().equals("0")) {
-	                        userStatusVO.setUserAccountDisabled("false");
-	                    } else if (user.getAttribute("usr_disabled").toString().equals("1")) {
-	                        userStatusVO.setUserAccountDisabled("true");
-	                    }
-	                }
-	                if (user.getAttribute("usr_locked") != null && user.getAttribute("usr_locked").toString() != null) {
-	                    if (user.getAttribute("usr_locked").toString().equals("0")) {
-	                        userStatusVO.setUserAccountLocked("false");
-	                    } else if (user.getAttribute("usr_locked").toString().equals("1")) {
-	                        userStatusVO.setUserAccountLocked("true");
-	                    }
-	                }
-	                if (user.getAttribute("migr_firstLogin") != null) {
-	                    userStatusVO.setMigratedUserFirstLogin(user.getAttribute("migr_firstLogin").toString());
-	                } else {
-	                    userStatusVO.setMigratedUserFirstLogin("false");
-	                }
-	                if (user.getAttribute("usr_login_attempts_ctr") != null) {
-	                    userStatusVO.setIncorrectLoginAttemptsMade(user.getAttribute("usr_login_attempts_ctr").toString());
-	                }
-	                userStatusVO.setStatus("Success");
-	            }
-	        } catch (Exception ex) {
-	          /*  if (logger.isLoggable(Level.SEVERE)) {
-	                logger.logp(Level.SEVERE, CLASS_NAME, "getUserStatus", "Error: " + ex.getMessage());
-	            }*/
-	            userStatusVO.setStatus("Error");
-	            userStatusVO.setErrorMessage("No user found for username : " + username);
-	        } finally {
-	            //Logout from OIMClient
-	            if (oimClient != null) {
-	               /* if (logger.isLoggable(Level.FINE)) {
-	                    logger.logp(Level.FINE, CLASS_NAME, "getUserStatus", "logging out");
-	                }*/
-	                oimClient.logout();
-	                oimClient = null;
-	            }
-	        }
-	       /* if (logger.isLoggable(Level.FINE)) {
-	            logger.logp(Level.FINE, CLASS_NAME, "getUserStatus", "__getUserStatus End__");
-	        }
-	        if (logger.isLoggable(Level.FINE)) {
-	            logger.exiting(CLASS_NAME, "getUserStatus");
-	        }*/
-	        return userStatusVO;
+	  public UserStatusVO ovdUserStatus(DirContext dirContext,UsernameVO usernameVO) {
+		  
+		 /* dirContext.search(name, matchingAttributes, attributesToReturn)*/
+	      
+	        return null;
 	    }
 
 

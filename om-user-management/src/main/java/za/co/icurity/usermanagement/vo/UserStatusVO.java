@@ -1,54 +1,35 @@
 package za.co.icurity.usermanagement.vo;
 
-public class UserStatusVO extends StatusOutVO{
-    
-    private String migratedUserFirstLogin;
-    private String userAccountLocked;
-    private String userAccountDisabled;
-    private String changePasswordAtNextLogon;
-    private String incorrectLoginAttemptsMade;
-    
-    public UserStatusVO() {
-        super();
-    }
+import org.springframework.stereotype.Component;
 
-    public void setMigratedUserFirstLogin(String migratedUserFirstLogin) {
-        this.migratedUserFirstLogin = migratedUserFirstLogin;
-    }
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-    public String getMigratedUserFirstLogin() {
-        return migratedUserFirstLogin;
-    }
+@JsonInclude(value = Include.NON_NULL)
+@Component
+public class UserStatusVO extends StatusOutVO {
 
-    public void setUserAccountLocked(String userAccountLocked) {
-        this.userAccountLocked = userAccountLocked;
-    }
+	private String obPasswordChangeFlag;
+	private String obFirstLogin;
 
-    public String getUserAccountLocked() {
-        return userAccountLocked;
-    }
+	public UserStatusVO() {
+		super();
+	}
 
-    public void setUserAccountDisabled(String userAccountDisabled) {
-        this.userAccountDisabled = userAccountDisabled;
-    }
+	public String getObPasswordChangeFlag() {
+		return obPasswordChangeFlag;
+	}
 
-    public String getUserAccountDisabled() {
-        return userAccountDisabled;
-    }
+	public void setObPasswordChangeFlag(String obPasswordChangeFlag) {
+		this.obPasswordChangeFlag = obPasswordChangeFlag;
+	}
 
-    public void setChangePasswordAtNextLogon(String changePasswordAtNextLogon) {
-        this.changePasswordAtNextLogon = changePasswordAtNextLogon;
-    }
+	public String getObFirstLogin() {
+		return obFirstLogin;
+	}
 
-    public String getChangePasswordAtNextLogon() {
-        return changePasswordAtNextLogon;
-    }
+	public void setObFirstLogin(String obFirstLogin) {
+		this.obFirstLogin = obFirstLogin;
+	}
 
-    public void setIncorrectLoginAttemptsMade(String incorrectLoginAttemptsMade) {
-        this.incorrectLoginAttemptsMade = incorrectLoginAttemptsMade;
-    }
-
-    public String getIncorrectLoginAttemptsMade() {
-        return incorrectLoginAttemptsMade;
-    }
 }

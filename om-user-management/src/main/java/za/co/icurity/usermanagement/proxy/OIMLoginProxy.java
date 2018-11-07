@@ -48,14 +48,12 @@ public class OIMLoginProxy {
         
 		env.put(OIMClient.JAVA_NAMING_FACTORY_INITIAL, "weblogic.jndi.WLInitialContextFactory");
 		env.put(OIMClient.JAVA_NAMING_PROVIDER_URL, properties.getProperty("oim_url"));
-		System.out.println("Creating client....");
-		oimClient = new OIMClient(env);
+   		oimClient = new OIMClient(env);
 		
 		try {
 			if(oimClient != null)
 			oimClient.login(properties.getProperty("oim_username"), properties.getProperty("oim_password").toCharArray());
-			System.out.println("Log in successful");
-			  LOG.info(this+" Log in successful");
+			 LOG.info(this+" Log in successful");
 		} catch (LoginException ex) {
            /* if (logger.isLoggable(Level.SEVERE)) {
                 logger.logp(Level.SEVERE, CLASS_NAME, "createUser", "Error: " + ex.getMessage());

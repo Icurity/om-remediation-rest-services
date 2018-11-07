@@ -2,15 +2,23 @@ package za.co.icurity.usermanagement.vo;
 
 import org.springframework.stereotype.Component;
 
-@Component
-public class UserOutVO extends StatusOutVO{
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-	 private String userId;
-	 private String errorCode;
-	 
-	 public UserOutVO() {
-	        super();
-	    }
+ 
+@JsonInclude(value = Include.NON_NULL)
+@Component
+public class UserOutVO extends StatusOutVO {
+
+	private String userId;
+	private String errorCode;
+
+	private String memberOf;
+	
+
+	public UserOutVO() {
+		super();
+	}
 
 	public String getUserId() {
 		return userId;
@@ -28,5 +36,12 @@ public class UserOutVO extends StatusOutVO{
 		this.errorCode = errorCode;
 	}
 
-	 
+	public String getMemberOf() {
+		return memberOf;
+	}
+
+	public void setMemberOf(String memberOf) {
+		this.memberOf = memberOf;
+	}
+
 }
