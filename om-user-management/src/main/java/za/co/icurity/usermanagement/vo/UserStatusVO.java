@@ -9,27 +9,28 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @Component
 public class UserStatusVO extends StatusOutVO {
 
-	private String obPasswordChangeFlag;
-	private String obFirstLogin;
+	private String changePassword;
+	private String migratedUserFirstLogin;
 
 	public UserStatusVO() {
 		super();
 	}
 
-	public String getObPasswordChangeFlag() {
-		return obPasswordChangeFlag;
+	public String getChangePassword() {
+		return changePassword;
 	}
 
-	public void setObPasswordChangeFlag(String obPasswordChangeFlag) {
-		this.obPasswordChangeFlag = obPasswordChangeFlag;
+	public void setChangePassword(String changePassword) {
+		this.changePassword = changePassword;
 	}
 
-	public String getObFirstLogin() {
-		return obFirstLogin;
+	public String getMigratedUserFirstLogin() {
+		return migratedUserFirstLogin;
 	}
 
-	public void setObFirstLogin(String obFirstLogin) {
-		this.obFirstLogin = obFirstLogin;
+	public void setMigratedUserFirstLogin(String migratedUserFirstLogin) {
+		this.migratedUserFirstLogin = migratedUserFirstLogin;
 	}
 
+	
 }

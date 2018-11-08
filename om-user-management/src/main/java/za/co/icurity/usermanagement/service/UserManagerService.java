@@ -131,11 +131,12 @@ public class UserManagerService {
 			UserManager userManager = oimClient.getService(UserManager.class);
 			result = userManager.create(user);
 			userOutVO.setUserId(result.getEntityId());
+			userOutVO.setStatus("Success");
 			LOG.info(this + " User object created : " + userInVO.getUsername());
-			System.out.println("User created successfully");
 		} catch (Exception ex) {
-			System.out.println("User creation failed");
-			ex.printStackTrace();
+			userOutVO.setStatus("Error");
+			userOutVO.setErrorMessage("Error creating user on OIM for username "+userInVO.getUsername());
+			LOG.error(this+" Error creating user on OIM for username "+userInVO.getUsername());
 		}
 		return userOutVO;
 	}
@@ -206,8 +207,8 @@ public class UserManagerService {
 			roleName = properties.getProperty("role_name");
 		} catch (Exception e) {
 			statusOutVO.setStatus("Error");
-			statusOutVO.setErrorMessage("Exception while logging in. Please try again.");
-			LOG.error(this + statusOutVO.getErrorMessage());
+			statusOutVO.setErrorMessage("Exception on Provisioning the user");
+			LOG.error(this +" Exception while setting the properties "+e.getMessage());
 			return statusOutVO;
 		}
 
@@ -237,13 +238,13 @@ public class UserManagerService {
 				statusOutVO.setStatus("Success");
 			} else {
 				statusOutVO.setStatus("Error");
-				statusOutVO.setErrorMessage("Error while creating user account in AD");
-				LOG.error(this + statusOutVO.getErrorMessage());
+				statusOutVO.setErrorMessage("Exception on Provisioning the user");
+				LOG.error(this +" Exception while setting the properties ");
 			}
 		} catch (Exception ex) {
 			statusOutVO.setStatus("Error");
-			statusOutVO.setErrorMessage("Error while provisioning resource to AD");
-			LOG.error(this + statusOutVO.getErrorMessage());
+			statusOutVO.setErrorMessage("Exception on Provisioning the user");
+			LOG.error(this +" Exception while setting the properties");
 		}
 		return statusOutVO;
 	}

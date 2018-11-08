@@ -74,7 +74,11 @@ public class ResourceController {
 	private CheckExistingUsernameOutVO checkExistingUsernameOutVO;
 	@Autowired
 	private UserStatusVO userStatusVO;
+	@Autowired
+	private RoleListVO roleListVO;
 	static final String searchBase = "cn=users";
+	
+	
 
 	/**
 	 * Create a user in OIM and provision
@@ -84,67 +88,84 @@ public class ResourceController {
 	 * @throws Exception
 	 */
 
-	@RequestMapping(value = "/createUser", method = RequestMethod.POST, headers = "Accept=application/json")
-	public UserOutVO createUser(@RequestBody UserInVO userInVO) throws Exception {
-
-		OIMClient oimClient = null;
+	   @RequestMapping(value = "/createUser", method = RequestMethod.POST, headers = "Accept=application/json")	 
+	   public ResponseEntity<UserOutVO> createUser(@RequestBody UserInVO userInVO) throws Exception {
+		OIMClient oimClient = null;		
+		userOutVO.setUserId(null);
+		userOutVO.setErrorMessage(null);
+		userOutVO.setUserId(null);
+		userOutVO.setErrorCode(null);
 		String ssaid = null;
-
+	
 		// validate input fields - returns userOutVO with status
-		UserOutVO userOutVO = validateUserInVOUtil.validateUserInVO(userInVO);
-		if (userOutVO.getStatus().equals("Error")) {
+		if(validateUserInVOUtil.validateUserInVO(userInVO).getStatus().equalsIgnoreCase("Error")) {
 			LOG.error("validateUserInVO " + userOutVO.getErrorMessage());
-			throw new Exception("Validation Errors:" + userOutVO.getErrorMessage());
+			userOutVO.setStatus("Error");
+			userOutVO.setErrorMessage(userOutVO.getErrorMessage());
+			return new ResponseEntity<>(userOutVO, HttpStatus.BAD_REQUEST);			
 		}
 
 		// Get the OIMClient object
+		
 		oimClient = oimLoginProxy.userLogin();
 		if (oimClient == null) {
-			throw new Exception("Login to OIMClient failed");
+			userOutVO.setStatus("Error");
+			userOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(userOutVO, HttpStatus.SERVICE_UNAVAILABLE);		
 		}
 
 		// generate, check existing ssaid(employee number) and set it userInVO
 		while (true) {
 			ssaid = generateSSAID.getSSAID();
-			if (!userManagerService.checkExistingEmployeeNumber(oimClient, ssaid)) {
+			if (!userManagerService.checkExistingEmployeeNumber(oimClient, ssaid)) { //confirm with Mocx
 				userInVO.setSsaId(ssaid);
 				break;
 			}
 		}
 		// create user
 		userOutVO = userManagerService.createUser(oimClient, userInVO);
-
+		if(userOutVO.getStatus().equalsIgnoreCase("Error")) {
+			userOutVO.setStatus("Error");
+			userOutVO.setErrorMessage(userOutVO.getErrorMessage());
+			return new ResponseEntity<>(userOutVO, HttpStatus.SERVICE_UNAVAILABLE);		
+		}
 		try {
 			// provision user
 			if (userOutVO.getUserId() != null) {
 				accountVO.setEmployeeNumber(ssaid);
 				accountVO.setUserKey(userOutVO.getUserId());
 				accountVO.setUsername(userInVO.getUsername());
-				StatusOutVO statusOutVO = userManagerService.provisionUser(oimClient, accountVO);
-				if (statusOutVO.getStatus() != "Success") {
+				StatusOutVO statusOutVO = userManagerService.provisionUser(oimClient, accountVO);				
+				if(statusOutVO.getStatus().equalsIgnoreCase("Error")) {
 					userOutVO.setStatus("Error");
-					userOutVO.setErrorMessage("Error while creating user account in AD");
-					LOG.error(this + userOutVO.getErrorMessage());
-					throw new Exception("User provisioning failed");
+					userOutVO.setErrorMessage(userOutVO.getErrorMessage());
+					return new ResponseEntity<>(userOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+				}else {
+					userOutVO.setStatus("Success");
+					userOutVO.setErrorMessage("User "+userInVO.getUsername() +" successfully created ");					
+					return new ResponseEntity<>(userOutVO, HttpStatus.CREATED);
 				}
-			} else {
-				LOG.error(this + " User provisioning failed " + userOutVO.getErrorMessage());
-				throw new Exception("UserId is null for provisioning");
+			}else {
+				userOutVO.setStatus("Error");
+				userOutVO.setErrorMessage(userOutVO.getErrorMessage());
+				return new ResponseEntity<>(userOutVO, HttpStatus.SERVICE_UNAVAILABLE);
 			}
-		} catch (Exception e) {
-			LOG.error(this + " Error on provision user " + userOutVO.getStatus());
+		}catch (Exception e) {
+			userOutVO.setStatus("Error");
+			userOutVO.setErrorMessage(userOutVO.getErrorMessage());
+			return new ResponseEntity<>(userOutVO, HttpStatus.SERVICE_UNAVAILABLE);
 		} finally {
 			if (oimClient != null) {
 				oimClient.logout();
 				oimClient = null;
 			}
 		}
-		return userOutVO;
 	}
 
 	/**
+	 * Gets the status of the user
 	 * @param userInVO
-	 * @return
+	 * @return password change status and user first login status
 	 * @throws Exception
 	 */
 
@@ -152,25 +173,25 @@ public class ResourceController {
 	public ResponseEntity<UserStatusVO> userstatus(@RequestParam("username") String username) throws Exception {
 		userStatusVO.setErrorMessage(null);
 		userStatusVO.setStatus(null);
-		userStatusVO.setObFirstLogin(null);
-		userStatusVO.setObPasswordChangeFlag(null);
+		userStatusVO.setMigratedUserFirstLogin(null);
+		userStatusVO.setChangePassword(null);
 		if (username == null || username.isEmpty()) {
-			userStatusVO.setStatus("500");
-			userStatusVO.setErrorMessage("Please enter valid user name");
-			return new ResponseEntity<>(userStatusVO, HttpStatus.INTERNAL_SERVER_ERROR);
-		}		
+			userStatusVO.setStatus("Error");
+			userStatusVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(userStatusVO, HttpStatus.NOT_FOUND);
+		}
 		DirContext dirContext = ovdLoginProxy.connect();
-		try { 
+		try {
 			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + "))";
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {
 				attributes = searchResult.getAttributes();
-			}else {
-				LOG.info(this + " User " + username + " Not found");
-				userStatusVO.setStatus("500");
-				userStatusVO.setErrorMessage(" User " + username + " Not found");
-				return new ResponseEntity<>(userStatusVO, HttpStatus.INTERNAL_SERVER_ERROR);
+			} else {
+				LOG.info(this + "No user found for username: " + username);
+				userStatusVO.setStatus("Error");
+				userStatusVO.setErrorMessage("No user found for username: " + username);
+				return new ResponseEntity<>(userStatusVO, HttpStatus.NOT_FOUND);
 			}
 			if (attributes != null) {
 				for (NamingEnumeration ae = attributes.getAll(); ae.hasMore();) {
@@ -178,81 +199,82 @@ public class ResourceController {
 					if (attr.getID().equalsIgnoreCase("obfirstlogin")) {
 						if (attr.get() != null)
 							if (attr.get().equals("true")) {
-								userStatusVO.setObFirstLogin("true");
+								userStatusVO.setMigratedUserFirstLogin("true");
 							} else if (attr.get().equals("false")) {
-								userStatusVO.setObFirstLogin("false");
+								userStatusVO.setMigratedUserFirstLogin("false");
 							}
 					} else if (attr.getID().equalsIgnoreCase("obpasswordchangeflag")) {
 						if (attr.get() != null)
 							if (attr.get().equals("0")) {
-								userStatusVO.setObPasswordChangeFlag("false");
+								userStatusVO.setChangePassword("false");
 							} else if (attr.get().equals("1")) {
-								userStatusVO.setObPasswordChangeFlag("true");
+								userStatusVO.setChangePassword("true");
 							}
 					}
-				}	
-
+				}
 			}
 			userStatusVO.setStatus("Success");
-			userStatusVO.setObFirstLogin(userStatusVO.getObFirstLogin());
-			userStatusVO.setObPasswordChangeFlag(userStatusVO.getObPasswordChangeFlag());
-			return new ResponseEntity<>(userStatusVO, HttpStatus.OK);						
+			userStatusVO.setMigratedUserFirstLogin(userStatusVO.getMigratedUserFirstLogin());
+			userStatusVO.setChangePassword(userStatusVO.getChangePassword());
+			return new ResponseEntity<>(userStatusVO, HttpStatus.OK);
 		} catch (Exception e) {
-			LOG.error(this + " Error on getUserStatus " + e);
-			userStatusVO.setStatus("500");
+			LOG.error(this + " Error on getUserStatus. ERROR: " + e.getMessage());
+			userStatusVO.setStatus("Error");
 			userStatusVO.setErrorMessage("System unavailable at the moment, please try again");
-			return new ResponseEntity<>(userStatusVO, HttpStatus.INTERNAL_SERVER_ERROR);
-		} finally {			
-			dirContext = null;			
+			return new ResponseEntity<>(userStatusVO, HttpStatus.SERVICE_UNAVAILABLE);
+		} finally {
+			dirContext = null;
 		}
 	}
 
+	/**
+	 * Fetches the roles for the user
+	 * @param username
+	 * @return Roles with success status else error status
+	 */
 	@RequestMapping(value = "fetchUserRoles", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<UserOutVO> fetchUserRoles(@RequestParam("username") String username) {
-		DirContext dirContext = null;
-		userOutVO.setErrorCode(null);
-		userOutVO.setErrorMessage(null);
-		userOutVO.setMemberOf(null);
-		userOutVO.setStatus(null);
-		userOutVO.setUserId(null);
-		
+	public ResponseEntity<RoleListVO> fetchUserRoles(@RequestParam("username") String username) {
+		DirContext dirContext = null;  
+		roleListVO.setErrorMessage(null);
+		roleListVO.setStatus(null);
+		roleListVO.setRole(null); 
+
 		if (username == null || username.isEmpty()) {
-			userOutVO.setStatus("500");
-			userOutVO.setErrorMessage("Please enter valid user name");
-			return new ResponseEntity<>(userOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+			roleListVO.setStatus("Error");
+			roleListVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(roleListVO, HttpStatus.NOT_FOUND);
 		}
 
 		try {
 			dirContext = ovdLoginProxy.connect();
-		} catch (InvalidNameException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (NamingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (InvalidNameException ine) {
+			LOG.error(this + " fetchUserRoles: ERROR: " + ine.getMessage());
+			ine.printStackTrace();
+		} catch (NamingException ne) {
+			LOG.error(this + " fetchUserRoles: ERROR: " + ne.getMessage());
+			ne.printStackTrace();
 		}
 		if (dirContext == null) {
-			userOutVO.setStatus("500");
-			userOutVO.setErrorMessage("System unavailable at the moment, please try again");
-			return new ResponseEntity<>(userOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+			roleListVO.setStatus("Error");
+			roleListVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(roleListVO, HttpStatus.SERVICE_UNAVAILABLE);
 		}
 
 		try {
-
 			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + "))";
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {
 				attributes = searchResult.getAttributes();
 			} else {
-				LOG.info(this + " User " + username + " Not found");
-				userOutVO.setStatus("500");
-				userOutVO.setErrorMessage(" User " + username + " Not found");
-				return new ResponseEntity<>(userOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+				LOG.info(this + "No user found for username: " + username);
+				roleListVO.setStatus("Error");
+				roleListVO.setErrorMessage("No user found for username: " + username);
+				return new ResponseEntity<>(roleListVO, HttpStatus.NOT_FOUND);
 			}
-			// List<String> memberOf = new ArrayList<String>();
-			StringBuffer tmpmemberOf = new StringBuffer();
 
+			ArrayList<RoleVO> memberOfList = new ArrayList<RoleVO>();
+			
 			if (attributes.get("memberOf") != null) {
 				for (Enumeration vals = attributes.get("memberOf").getAll(); vals.hasMoreElements();) {
 					String[] myData = vals.nextElement().toString().toLowerCase().split("cn=");
@@ -261,85 +283,76 @@ public class ResourceController {
 						String group = str.split(",")[0];
 						if (!group.contains("admin group")) {
 							group = group.replace("r-", "").replace("members group", "").trim();
-							if (i == 0) {
-								tmpmemberOf.append(group);
-							} else {
-								tmpmemberOf.append(group + ",");
+							RoleVO roleVO = new RoleVO();
+							if (group.length() > 0) {
+								roleVO.setName(group);
+								memberOfList.add(roleVO);
 							}
-
-							i++;
 						}
 					}
 
 				}
 			}
-			StringBuffer tmpIsmemberOf = new StringBuffer();
-			if (tmpmemberOf.length() > 0) {
-				String tmp = "[" + tmpmemberOf.toString() + "]";
-				tmpIsmemberOf.append(tmp.replace(",]", ","));
-			}
-
 			if (attributes.get("ismemberOf") != null) {
 				for (Enumeration vals = attributes.get("ismemberOf").getAll(); vals.hasMoreElements();) {
 					String[] myData = vals.nextElement().toString().toLowerCase().split("cn=");
-					int i = 0;
 					for (String str : myData) {
 						String group = str.split(",")[0];
 						if (!group.contains("admin group") && !group.contains("groups")) {
 							group = group.replace("r-", "").replace("members group", "").trim();
-							if (i == 0) {
-								tmpIsmemberOf.append(group);
-							} else {
-								tmpIsmemberOf.append(group + ",");
+							RoleVO roleVO = new RoleVO();
+							if (group.length() > 0) {
+								roleVO.setName(group);
+								memberOfList.add(roleVO);
 							}
-							i++;
 						}
-
 					}
-
 				}
 			}
-			if (tmpIsmemberOf.length() > 0) {
-				String tmp1 = tmpIsmemberOf.toString() + "]";
-				userOutVO.setStatus("200");
-				userOutVO.setMemberOf(tmp1.replace(",]", "]"));
+			if (memberOfList.size() > 0) {
+				roleListVO.setStatus("Success");
+				roleListVO.setRole(memberOfList);
+				return new ResponseEntity<>(roleListVO, HttpStatus.OK);
+			} else {
+				LOG.error(this + " fetchUserRoles: No roles granted for username: " + username);
+				roleListVO.setStatus("Error");
+				roleListVO.setErrorMessage("No roles granted for username: " + username);
+				return new ResponseEntity<>(roleListVO, HttpStatus.NOT_FOUND);
 			}
-			return new ResponseEntity<>(userOutVO, HttpStatus.OK);
 		} catch (Exception e) {
-			LOG.error(this + " Error on fetchUserRoles " + e);
-			// userOutVO.setErrorMessage("Error on getUserStatus");
-			userOutVO.setStatus("500");
-			userOutVO.setErrorMessage("System unavailable at the moment, please try again");
-			return new ResponseEntity<>(userOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
-
+			LOG.error(this + " Error on fetchUserRoles " + e.getMessage());
+			roleListVO.setStatus("Error");
+			roleListVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(roleListVO, HttpStatus.INTERNAL_SERVER_ERROR);
 		} finally {
 			dirContext = null;
 		}
-
 	}
-	
-	
+
+	/**
+	 * This method checks the username existance already. 
+	 * @param username: Username is the input value
+	 * @return Returns Success (status 200) if found else error status
+	 */
 	@RequestMapping(value = "checkExistingUserName", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<CheckExistingUsernameOutVO> checkExistingUserName(@RequestParam("username") String username) {
 		OIMClient oimClient = null;
-		// Get the OIMClient object
 		oimClient = oimLoginProxy.userLogin();
 		checkExistingUsernameOutVO.setErrorMessage(null);
 		checkExistingUsernameOutVO.setStatus(null);
 		checkExistingUsernameOutVO.setUsernameExists(null);
 
 		if (username == null || username.isEmpty()) {
-			checkExistingUsernameOutVO.setStatus("500");
-			checkExistingUsernameOutVO.setErrorMessage("Please enter valid user name");
-			return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+			checkExistingUsernameOutVO.setStatus("Error");
+			checkExistingUsernameOutVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.NOT_FOUND);
 		}
 		try {
 			if (oimClient == null) {
-				LOG.error(this + " checkExistingUserName: Failed  OIMCLient login");
-				checkExistingUsernameOutVO.setStatus("500");
+				LOG.error(this + " checkExistingUserName: Failed  to OIMCLient login");
+				checkExistingUsernameOutVO.setStatus("Error");
 				checkExistingUsernameOutVO.setErrorMessage("System unavailable at the moment, please try again");
-				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
-				// throw new RuntimeException("checkExistingUserName: Failed OIMCLient login");
+				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.SERVICE_UNAVAILABLE);
 			}
 
 			LOG.info(this + " checkExistingUserName Logged into OIMClient  ");
@@ -348,28 +361,21 @@ public class ResourceController {
 				checkExistingUsernameOutVO.setUsernameExists("true");
 				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.OK);
 			} else {
-				/*
-				 * checkExistingUsernameOutVO.setUsernameExists("false");
-				 * checkExistingUsernameOutVO.setErrorMessage("No user found for username : " +
-				 * usernameVO.getUsername());
-				 */
-				LOG.error(this + " checkExistingUserName: Username not exists");
-				// throw new RuntimeException("Username not exists");
-				checkExistingUsernameOutVO.setStatus("500");
-				checkExistingUsernameOutVO.setErrorMessage("User " + username + " not found");
-				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+				LOG.error(this + " checkExistingUserName: No user found for username: " + username);
+				checkExistingUsernameOutVO.setStatus("Error");
+				checkExistingUsernameOutVO.setErrorMessage("No user found for username: " + username);
+				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception e) {
-			LOG.error(this + " Error on checkExistingUserName ");
-			// checkExistingUsernameOutVO.setErrorMessage("Error on checkExistingUserName");
-			checkExistingUsernameOutVO.setStatus("500");
+			LOG.error(this + " Error on checkExistingUserName " + e.getMessage());
+			checkExistingUsernameOutVO.setStatus("Error");
 			checkExistingUsernameOutVO.setErrorMessage("System unavailable at the moment, please try again");
 			return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
 		} finally {
 			if (oimClient != null) {
 				oimClient.logout();
 				oimClient = null;
-			}			
+			}
 		}
 	}
 
