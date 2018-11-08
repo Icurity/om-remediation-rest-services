@@ -9,7 +9,8 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @Component
 public class RoleVO {
 
-    private String memberOf;
+	 private String displayName;
+	 private String name;
 
 
     public RoleVO() {
@@ -17,13 +18,23 @@ public class RoleVO {
     }
 
 
-	public String getMemberOf() {
-		return memberOf;
+	public String getDisplayName() {
+		return displayName;
 	}
 
 
-	public void setMemberOf(String memberOf) {
-		this.memberOf = memberOf;
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
    
