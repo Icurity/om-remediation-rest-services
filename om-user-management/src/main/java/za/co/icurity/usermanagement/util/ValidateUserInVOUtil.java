@@ -23,28 +23,28 @@ public class ValidateUserInVOUtil {
 	
 	/** 
 	 * validates the user input
-	 * @param userInVO
+	 * @param createUserVO
 	 * @return
 	 */
-	public UserOutVO validateUserInVO(UserInVO userInVO) {
+	public UserOutVO validateUserInVO(UserInVO createUserVO) {
 
 		userOutVO.setStatus("");
 		StringBuffer buffer = new StringBuffer();
-		if (userInVO == null || userInVO.getLastName() == null || userInVO.getLastName().trim().isEmpty() || userInVO.getPassword() == null || userInVO.getPassword().trim().isEmpty() || userInVO.getUsername() == null || userInVO.getUsername().trim().isEmpty() || userInVO.getDateOfBirth() == null || userInVO.getDateOfBirth().trim().isEmpty() || userInVO.getIdNumber() == null || userInVO.getIdNumber().trim().isEmpty()) {
+		if (createUserVO == null || createUserVO.getLastName() == null || createUserVO.getLastName().trim().isEmpty() || createUserVO.getPassword() == null || createUserVO.getPassword().trim().isEmpty() || createUserVO.getUsername() == null || createUserVO.getUsername().trim().isEmpty() || createUserVO.getDateOfBirth() == null || createUserVO.getDateOfBirth().trim().isEmpty() || createUserVO.getIdNumber() == null || createUserVO.getIdNumber().trim().isEmpty()) {
 			userOutVO.setStatus("Error");
-			if (userInVO.getLastName() == null || userInVO.getLastName().trim().isEmpty()) {
+			if (createUserVO.getLastName() == null || createUserVO.getLastName().trim().isEmpty()) {
 				buffer.append("Mandatory field : Last Name" + System.getProperty("line.separator"));
 			}
-			if (userInVO.getPassword() == null || userInVO.getPassword().trim().isEmpty()) {
+			if (createUserVO.getPassword() == null || createUserVO.getPassword().trim().isEmpty()) {
 				buffer.append("Mandatory field : Password" + System.getProperty("line.separator"));
 			}
-			if (userInVO.getUsername() == null || userInVO.getUsername().trim().isEmpty()) {
+			if (createUserVO.getUsername() == null || createUserVO.getUsername().trim().isEmpty()) {
 				buffer.append("Mandatory field : Username" + System.getProperty("line.separator"));
 			}
-			if (userInVO.getDateOfBirth() == null || userInVO.getDateOfBirth().trim().isEmpty()) {
+			if (createUserVO.getDateOfBirth() == null || createUserVO.getDateOfBirth().trim().isEmpty()) {
 				buffer.append("Mandatory field : Date of Birth" + System.getProperty("line.separator"));
 			}
-			if (userInVO.getIdNumber() == null || userInVO.getIdNumber().trim().isEmpty()) {
+			if (createUserVO.getIdNumber() == null || createUserVO.getIdNumber().trim().isEmpty()) {
 				buffer.append("Mandatory field : ID Number" + System.getProperty("line.separator"));
 			}
 			userOutVO.setErrorMessage(buffer.toString());
@@ -54,7 +54,7 @@ public class ValidateUserInVOUtil {
 			 */
 			return userOutVO;
 		} else {
-			if (userInVO.getDateOfBirth() == null || !userInVO.getDateOfBirth().matches("^(3[01]|[12][0-9]|0[1-9])/(1[0-2]|0[1-9])/[0-9]{4}$")) {
+			if (createUserVO.getDateOfBirth() == null || !createUserVO.getDateOfBirth().matches("^(3[01]|[12][0-9]|0[1-9])/(1[0-2]|0[1-9])/[0-9]{4}$")) {
 				userOutVO.setStatus("Error");
 				buffer.append("Please enter date in format dd/MM/yyyy" + System.getProperty("line.separator"));
 				userOutVO.setErrorMessage(buffer.toString());

@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.naming.directory.DirContext;
 
@@ -26,6 +27,9 @@ import oracle.iam.provisioning.vo.AccountData;
 import oracle.iam.provisioning.vo.ApplicationInstance;
 import za.co.icurity.usermanagement.util.DecryptPasswordUtil;
 import za.co.icurity.usermanagement.util.PropertiesUtil;
+import za.co.icurity.usermanagement.vo.CheckExistingUserInVO;
+import za.co.icurity.usermanagement.vo.GetADUsernameInVO;
+import za.co.icurity.usermanagement.vo.GetADUsernameOutVO;
 import za.co.icurity.usermanagement.vo.ProvisionUserAccountVO;
 import za.co.icurity.usermanagement.vo.StatusOutVO;
 import za.co.icurity.usermanagement.vo.UserInVO;
@@ -44,6 +48,8 @@ public class UserManagerService {
 	private UserInVO userInVO;
 	@Autowired
 	private DecryptPasswordUtil descriptPassword;
+	@Autowired
+	private GetADUsernameOutVO getADUsernameOutVO; 
 
 	/**
 	 * @param oimClient
@@ -158,12 +164,34 @@ public class UserManagerService {
 			} else {
 				return false;
 			}
-		} catch (Exception ex) {
-			LOG.error(this+" Search error ");
+		}catch (Exception ex) {
+			LOG.error(this+" checkExistingEmployeeNumber Search error ");
 		}
 		return false;
 	}
+	public boolean checkExistingCellphoneAttribute(OIMClient oimClient, String cellnumber) {
+
+		List<User> users = null;
+		HashMap<String, Object> parameters = null;
+		Set<String> attrNames = null;
 	
+		SearchCriteria criteria = new SearchCriteria("Telephone Number", cellnumber, SearchCriteria.Operator.EQUAL);
+		attrNames = new HashSet<String>();
+		attrNames.add("Last Name");
+		attrNames.add("User Login");
+		try {
+			UserManager userManager_local = oimClient.getService(UserManager.class);
+			users = userManager_local.search(criteria, attrNames, parameters);
+			if (users != null && !users.isEmpty() && users.get(0) != null && users.get(0).getLastName() != null) {
+				return true;
+			} else {
+				return false;
+			}
+		}catch (Exception ex) {
+			LOG.error(this+" checkExistingCellphoneAttribute Search error ");
+		}
+		return false;
+	}
 	public boolean checkExistingUserName(OIMClient oimClient, String username) {
 
 		List<User> users = null;
@@ -178,8 +206,14 @@ public class UserManagerService {
 			users = userManager_local.search(criteria, attrNames, parameters);
 			if (users != null && !users.isEmpty() && users.get(0) != null && users.get(0).getLastName() != null) {
 				return true;
-			} else {
+			}else {
+				criteria = new SearchCriteria("Employee Number", username, SearchCriteria.Operator.EQUAL);
+				users = userManager_local.search(criteria, attrNames, parameters);
+				if (users != null && !users.isEmpty() && users.get(0) != null && users.get(0).getLastName() != null) {
+					return true;
+				}else {
 				return false;
+			}
 			}
 		} catch (Exception ex) {
 			LOG.error(this+" Search error ");
@@ -187,6 +221,88 @@ public class UserManagerService {
 		return false;
 	}
 
+	public boolean checkExistingUser(OIMClient oimClient, CheckExistingUserInVO checkExistingUserInVO) {
+
+		   Set<String> attrNames = null;
+		   List<User> users = null;
+		   HashMap<String, Object> parameters = null;
+	    	SearchCriteria criteriaFirstName = new SearchCriteria("First Name", checkExistingUserInVO.getFirstName(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaLastName = new SearchCriteria("Last Name", checkExistingUserInVO.getLastName(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaDateOfBirth = new SearchCriteria("birth_date", checkExistingUserInVO.getDateOfBirth(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaIDNumber = new SearchCriteria("id_number", checkExistingUserInVO.getIdNumber(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaFirstAndLast = new SearchCriteria(criteriaFirstName, criteriaLastName, SearchCriteria.Operator.AND);
+	        SearchCriteria criteriaDOBAndID = new SearchCriteria(criteriaDateOfBirth, criteriaIDNumber, SearchCriteria.Operator.AND);
+	        SearchCriteria criteria = new SearchCriteria(criteriaFirstAndLast, criteriaDOBAndID, SearchCriteria.Operator.AND);
+	        attrNames = new HashSet<String>();
+	        attrNames.add("First Name");
+	        attrNames.add("Last Name");
+	        attrNames.add("birth_date");
+	        attrNames.add("id_number");	        
+	        SearchCriteria searchCriteria = new SearchCriteria(criteria, attrNames, SearchCriteria.Operator.EQUAL);
+	        try {
+				UserManager userManager_local = oimClient.getService(UserManager.class);
+				users = userManager_local.search(criteria, attrNames, parameters);
+				if (users != null && !users.isEmpty() && users.get(0) != null && users.get(0).getLastName() != null) {
+					return true;
+				}
+
+		} catch (Exception ex) {
+			LOG.error(this+" Search error ");
+		}
+		return false;
+	}
+	
+	public GetADUsernameOutVO getADUsernameAttributes(OIMClient oimClient, GetADUsernameInVO getADUsernameInVO) {
+
+		   Set<String> attrNames = null;
+		   List<User> users = null;
+		   HashMap<String, Object> parameters = null;
+		   SearchCriteria criteriaSurname = new SearchCriteria("Last Name", getADUsernameInVO.getSurname(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaIDNumber = new SearchCriteria("id_number", getADUsernameInVO.getIdNumber(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaIDType = new SearchCriteria("id_type", getADUsernameInVO.getIdType(), SearchCriteria.Operator.EQUAL);
+	        SearchCriteria criteriaEmail = new SearchCriteria("Email", getADUsernameInVO.getEmailAddress(), SearchCriteria.Operator.EQUAL);
+
+	        SearchCriteria criteriaSurnameIDNo = new SearchCriteria(criteriaSurname, criteriaIDNumber, SearchCriteria.Operator.AND);
+	        SearchCriteria criteriaIDTypeEmail = new SearchCriteria(criteriaIDType, criteriaEmail, SearchCriteria.Operator.AND);
+	        SearchCriteria criteria = new SearchCriteria(criteriaSurnameIDNo, criteriaIDTypeEmail, SearchCriteria.Operator.AND);
+
+	        attrNames = new HashSet<String>();
+	        attrNames.add("Employee Number");
+	        attrNames.add("User Login");
+	        attrNames.add("First Name");
+	        attrNames.add("Email");
+	        try {
+	            UserManager userManager_local = oimClient.getService(UserManager.class);
+	            users = userManager_local.search(criteria, attrNames, parameters);
+	            if (users != null && !users.isEmpty() && users.size() == 1 && users.get(0) != null) {
+	                getADUsernameOutVO.setStatus("Success");
+	                if (users.get(0).getAttribute("Employee Number") != null) {
+	                    getADUsernameOutVO.setUsernumber(users.get(0).getAttribute("Employee Number").toString());
+	                }
+	                if (users.get(0).getAttribute("User Login") != null) {
+	                    getADUsernameOutVO.setOmUserAlias(users.get(0).getAttribute("User Login").toString());
+	                }
+	                if (users.get(0).getAttribute("First Name") != null) {
+	                    getADUsernameOutVO.setFirstName(users.get(0).getAttribute("First Name").toString());
+	                }
+	                if (users.get(0).getAttribute("Email") != null) {
+	                    getADUsernameOutVO.setMail(users.get(0).getAttribute("Email").toString());
+	                }
+	            } else {
+	                getADUsernameOutVO.setStatus("Error");
+	                getADUsernameOutVO.setErrorMessage("No username/alias could be retrieved");
+	            }
+	        } catch (Exception ex) {
+	          /*  if (logger.isLoggable(Level.SEVERE)) {
+	                logger.logp(Level.SEVERE, CLASS_NAME, "getADUsername", "Error: " + ex.getMessage());
+	            }*/
+	            getADUsernameOutVO.setStatus("Error");
+	            getADUsernameOutVO.setErrorMessage("No username/alias could be retrieved");
+	            return getADUsernameOutVO;
+	        } 
+	        return getADUsernameOutVO;
+	}
+	
 	public StatusOutVO provisionUser(OIMClient oimClient, ProvisionUserAccountVO accountVO) {
 
 		StatusOutVO statusOutVO = new StatusOutVO();

@@ -12,20 +12,32 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @Component
 public class RoleListVO extends StatusOutVO {
 
-    private List<RoleVO> role;
+    private List<RoleVO> roles = null;
 
     public RoleListVO() {
         super();
     }
-
+/*
     public void setRole(List<RoleVO> role) {
-        this.role = role;
+        this.roles = roles;
     }
 
     public List<RoleVO> getRole() {
-        if (role == null) {
-            role = new ArrayList<RoleVO>();
+        if (roles == null) {
+        	roles = new ArrayList<RoleVO>();
         }
-        return role;
-    }
+        return roles;
+    }*/
+
+	public List<RoleVO> getRoles() {
+		return roles;
+	}
+
+	public void setRoles(List<RoleVO> roles) {
+		this.roles = roles;
+	}
+    
+    
+    
+    
 }

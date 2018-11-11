@@ -31,15 +31,16 @@ public class OVDLoginProxy {
 		
 		//final String searchBase = "cn=users";
 		//String searchFilter = "(|(uid=Ripple)(omUserAlias=Ripple))";
-		final String username = "cn= ";
-		final String password = " ";
+		final String username = "cn=Directory Manager";
+		final String password = "Oracle123";
  
 		env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-		//env.put(Context.PROVIDER_URL, " ");		
-		env.put(Context.PROVIDER_URL, " ");
+		//env.put(Context.PROVIDER_URL, "ldap://zaomtappv046.za.omlac.net:1389/dc=oldmutual,dc=co,dc=za,dc=dev");		
+		env.put(Context.PROVIDER_URL, "ldap://zaomtappv046.za.omlac.net:2389/dc=oudad,dc=oldmutual,dc=co,dc=za,dc=dev");
 		env.put(Context.SECURITY_AUTHENTICATION, "simple");
 		env.put(Context.SECURITY_PRINCIPAL, username);
 		env.put(Context.SECURITY_CREDENTIALS, password);
+
 		DirContext dirContext = new InitialDirContext(env);		
 		
 		return dirContext;
@@ -48,9 +49,14 @@ public class OVDLoginProxy {
 
 	public SearchResult findUserAttributes(DirContext ctx, String searchBase, String searchFilter) throws NamingException {
 
+	/*	
+		String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
+		SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);*/
+		
+		
 		SearchControls searchControls = new SearchControls();
 		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-
+		//String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
 		NamingEnumeration<SearchResult> results = ctx.search(searchBase, searchFilter, searchControls);
 
 		SearchResult searchResult = null;

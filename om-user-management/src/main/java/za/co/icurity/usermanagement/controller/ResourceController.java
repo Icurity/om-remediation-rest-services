@@ -33,14 +33,26 @@ import oracle.iam.platform.OIMClient;
 import za.co.icurity.usermanagement.proxy.OIMLoginProxy;
 import za.co.icurity.usermanagement.proxy.OVDLoginProxy;
 import za.co.icurity.usermanagement.service.UserManagerService;
+import za.co.icurity.usermanagement.util.AttributesUtil;
 import za.co.icurity.usermanagement.util.GenerateSSAID;
+import za.co.icurity.usermanagement.util.ValidateADUsernameInVOUtil;
+import za.co.icurity.usermanagement.util.ValidateCheckExistingUserInVOUtil;
 import za.co.icurity.usermanagement.util.ValidateUserInVOUtil;
+import za.co.icurity.usermanagement.vo.CheckExistingCellphoneOutVO;
+import za.co.icurity.usermanagement.vo.CheckExistingEmployeeNoOutVO;
+import za.co.icurity.usermanagement.vo.CheckExistingSSAIDOutVO;
+import za.co.icurity.usermanagement.vo.CheckExistingUserInVO;
+import za.co.icurity.usermanagement.vo.CheckExistingUserOutVO;
 import za.co.icurity.usermanagement.vo.CheckExistingUsernameOutVO;
 import za.co.icurity.usermanagement.vo.FetchUserRolesInVO;
+import za.co.icurity.usermanagement.vo.GetADUsernameInVO;
+import za.co.icurity.usermanagement.vo.GetADUsernameOutVO;
+import za.co.icurity.usermanagement.vo.GetUserAccountLockedOutVO;
 import za.co.icurity.usermanagement.vo.ProvisionUserAccountVO;
 import za.co.icurity.usermanagement.vo.RoleListVO;
 import za.co.icurity.usermanagement.vo.RoleVO;
 import za.co.icurity.usermanagement.vo.StatusOutVO;
+import za.co.icurity.usermanagement.vo.UserDetailsVO;
 import za.co.icurity.usermanagement.vo.UserInVO;
 import za.co.icurity.usermanagement.vo.UserOutVO;
 import za.co.icurity.usermanagement.vo.UserStatusVO;
@@ -48,6 +60,14 @@ import za.co.icurity.usermanagement.vo.UsernameVO;
 
 /**
  * @author
+ *
+ */
+/**
+ * @author cofasys
+ *
+ */
+/**
+ * @author cofasys
  *
  */
 @RestController
@@ -73,12 +93,37 @@ public class ResourceController {
 	@Autowired
 	private CheckExistingUsernameOutVO checkExistingUsernameOutVO;
 	@Autowired
+	private CheckExistingUserOutVO checkExistingUserOutVO;
+	@Autowired
 	private UserStatusVO userStatusVO;
 	@Autowired
 	private RoleListVO roleListVO;
-	static final String searchBase = "cn=users";
+	@Autowired
+	private CheckExistingUserInVO checkExistingUserInVO;
+	@Autowired
+	private ValidateCheckExistingUserInVOUtil validateCheckExistingUserInVOUtil;
+	@Autowired
+	private CheckExistingSSAIDOutVO checkExistingSSAIDOutVO;
+	@Autowired
+	private UserDetailsVO userDetailsVO;
+	@Autowired
+	private AttributesUtil attributesUtil;
+	@Autowired
+	private GetADUsernameInVO getADUsernameInVO; 
+	@Autowired
+	private GetADUsernameOutVO getADUsernameOutVO; 
+	@Autowired
+	private ValidateADUsernameInVOUtil validateADUsernameInVOUtil; 
+	@Autowired
+	private GetUserAccountLockedOutVO getUserAccountLockedOutVO;
+	@Autowired
+	private CheckExistingEmployeeNoOutVO checkExistingEmployeeNoOutVO;
+	@Autowired
+	private CheckExistingCellphoneOutVO checkExistingCellphoneOutVO;
 	
+	 
 	
+	static final String searchBase = "cn=users";	
 
 	/**
 	 * Create a user in OIM and provision
@@ -105,8 +150,7 @@ public class ResourceController {
 			return new ResponseEntity<>(userOutVO, HttpStatus.BAD_REQUEST);			
 		}
 
-		// Get the OIMClient object
-		
+		// Get the OIMClient object		
 		oimClient = oimLoginProxy.userLogin();
 		if (oimClient == null) {
 			userOutVO.setStatus("Error");
@@ -182,7 +226,8 @@ public class ResourceController {
 		}
 		DirContext dirContext = ovdLoginProxy.connect();
 		try {
-			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + "))";
+			//String searchFilter = "(|(uid=" + usernameVO.getUsername() + ")(omUserAlias=" + usernameVO.getUsername()+ "))";
+			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {
@@ -237,8 +282,7 @@ public class ResourceController {
 		DirContext dirContext = null;  
 		roleListVO.setErrorMessage(null);
 		roleListVO.setStatus(null);
-		roleListVO.setRole(null); 
-
+		roleListVO.setRoles(null); 
 		if (username == null || username.isEmpty()) {
 			roleListVO.setStatus("Error");
 			roleListVO.setErrorMessage("Mandatory field : Username");
@@ -261,7 +305,7 @@ public class ResourceController {
 		}
 
 		try {
-			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + "))";
+			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {
@@ -311,7 +355,7 @@ public class ResourceController {
 			}
 			if (memberOfList.size() > 0) {
 				roleListVO.setStatus("Success");
-				roleListVO.setRole(memberOfList);
+				roleListVO.setRoles(memberOfList);
 				return new ResponseEntity<>(roleListVO, HttpStatus.OK);
 			} else {
 				LOG.error(this + " fetchUserRoles: No roles granted for username: " + username);
@@ -354,7 +398,6 @@ public class ResourceController {
 				checkExistingUsernameOutVO.setErrorMessage("System unavailable at the moment, please try again");
 				return new ResponseEntity<>(checkExistingUsernameOutVO, HttpStatus.SERVICE_UNAVAILABLE);
 			}
-
 			LOG.info(this + " checkExistingUserName Logged into OIMClient  ");
 			if (userManagerService.checkExistingUserName(oimClient, username)) {
 				checkExistingUsernameOutVO.setStatus("Success");
@@ -376,6 +419,307 @@ public class ResourceController {
 				oimClient.logout();
 				oimClient = null;
 			}
+		}
+	}
+	
+	/**
+	 * @param employeeNumber
+	 * @return
+	 */
+	@RequestMapping(value = "checkExistingEmployeeNumber", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<CheckExistingEmployeeNoOutVO> checkExistingEmployeeNumber(@RequestParam("employeeNumber") String employeeNumber) {
+		OIMClient oimClient = null;
+		oimClient = oimLoginProxy.userLogin();
+		checkExistingEmployeeNoOutVO.setErrorMessage(null);
+		checkExistingEmployeeNoOutVO.setStatus(null);
+		checkExistingEmployeeNoOutVO.setEmployeeNoExists(null);
+
+		if (employeeNumber == null || employeeNumber.isEmpty()) {
+			checkExistingEmployeeNoOutVO.setStatus("Error");
+			checkExistingEmployeeNoOutVO.setErrorMessage("Mandatory field : employeeNumber");
+			return new ResponseEntity<>(checkExistingEmployeeNoOutVO, HttpStatus.NOT_FOUND);
+		}
+		try {
+			if (oimClient == null) {
+				LOG.error(this + " checkExistingEmployeeNumber: Failed  to OIMCLient login");
+				checkExistingEmployeeNoOutVO.setStatus("Error");
+				checkExistingEmployeeNoOutVO.setErrorMessage("System unavailable at the moment, please try again");
+				return new ResponseEntity<>(checkExistingEmployeeNoOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+			}
+			LOG.info(this + " checkExistingEmployeeNumber Logged into OIMClient  ");
+			if (userManagerService.checkExistingEmployeeNumber(oimClient, employeeNumber)) {
+				checkExistingEmployeeNoOutVO.setStatus("Success");
+				checkExistingEmployeeNoOutVO.setEmployeeNoExists("true");
+				return new ResponseEntity<>(checkExistingEmployeeNoOutVO, HttpStatus.OK);
+			} else {
+				LOG.error(this + " checkExistingEmployeeNumber: No user found for username: " + employeeNumber);
+				checkExistingEmployeeNoOutVO.setStatus("Error");
+				checkExistingEmployeeNoOutVO.setEmployeeNoExists("false");
+				return new ResponseEntity<>(checkExistingEmployeeNoOutVO, HttpStatus.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			LOG.error(this + " Error on checkExistingEmployeeNumber " + e.getMessage());
+			checkExistingEmployeeNoOutVO.setStatus("Error");
+			checkExistingEmployeeNoOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(checkExistingEmployeeNoOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+		} finally {
+			if (oimClient != null) {
+				oimClient.logout();
+				oimClient = null;
+			}
+		}
+	}
+	
+	
+	@RequestMapping(value = "checkExistingCellphone", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<CheckExistingCellphoneOutVO> checkExistingCellphone(@RequestParam("cellNumber") String cellNumber) {
+		OIMClient oimClient = null;
+		oimClient = oimLoginProxy.userLogin();
+		checkExistingCellphoneOutVO.setErrorMessage(null);
+		checkExistingCellphoneOutVO.setStatus(null);
+		checkExistingCellphoneOutVO.setCellphoneExists(null);
+
+		if (cellNumber == null || cellNumber.isEmpty()) {
+			checkExistingCellphoneOutVO.setStatus("Error");
+			checkExistingCellphoneOutVO.setErrorMessage("Mandatory field : Cellphone Number");
+			return new ResponseEntity<>(checkExistingCellphoneOutVO, HttpStatus.NOT_FOUND);
+		}
+		try {
+			if (oimClient == null) {
+				LOG.error(this + " checkExistingCellphone: Failed  to OIMCLient login");
+				checkExistingCellphoneOutVO.setStatus("Error");
+				checkExistingCellphoneOutVO.setErrorMessage("System unavailable at the moment, please try again");
+				return new ResponseEntity<>(checkExistingCellphoneOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+			}
+			LOG.info(this + " checkExistingCellphone Logged into OIMClient  ");
+			if (userManagerService.checkExistingCellphoneAttribute(oimClient, cellNumber)) {
+				checkExistingCellphoneOutVO.setStatus("Success");
+				checkExistingCellphoneOutVO.setCellphoneExists("true");
+				return new ResponseEntity<>(checkExistingCellphoneOutVO, HttpStatus.OK);
+			} else {
+				LOG.error(this + " checkExistingCellphone: No cell number found : " + cellNumber);
+				checkExistingCellphoneOutVO.setStatus("Error");
+				checkExistingCellphoneOutVO.setCellphoneExists("false");
+				return new ResponseEntity<>(checkExistingCellphoneOutVO, HttpStatus.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			LOG.error(this + " Error on checkExistingCellphone " + e.getMessage());
+			checkExistingCellphoneOutVO.setStatus("Error");
+			checkExistingCellphoneOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(checkExistingCellphoneOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+		} finally {
+			if (oimClient != null) {
+				oimClient.logout();
+				oimClient = null;
+			}
+		}
+	}
+	
+	/**
+	 * @param checkExistingUserInVO
+	 * @return true if the user found 
+	 */
+	@RequestMapping(value = "checkExistingUser", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<CheckExistingUserOutVO> checkExistingUser(CheckExistingUserInVO checkExistingUserInVO) {
+		OIMClient oimClient = null;
+		oimClient = oimLoginProxy.userLogin();
+		checkExistingUserOutVO.setErrorMessage(null);
+		checkExistingUserOutVO.setStatus(null);
+		checkExistingUserOutVO.setUserExists(null);
+
+		if (validateCheckExistingUserInVOUtil.validateCheckExistingUserInVO(checkExistingUserInVO).getStatus().equalsIgnoreCase("Error")) {
+			LOG.error("checkExistingUser " + userOutVO.getErrorMessage());
+			checkExistingUserOutVO.setStatus("Error");
+			checkExistingUserOutVO.setErrorMessage(userOutVO.getErrorMessage());
+			return new ResponseEntity<>(checkExistingUserOutVO, HttpStatus.BAD_REQUEST);
+		}
+		
+		try {
+			if (oimClient == null) {
+				checkExistingUserOutVO.setStatus("Error");
+				checkExistingUserOutVO.setErrorMessage("System unavailable at the moment, please try again");
+				return new ResponseEntity<>(checkExistingUserOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+			}
+			LOG.info(this + " checkExistingUser Logged into OIMClient  ");
+			if (userManagerService.checkExistingUser(oimClient, checkExistingUserInVO)) {
+				checkExistingUserOutVO.setStatus("Success");
+				checkExistingUserOutVO.setUserExists("true");
+				return new ResponseEntity<>(checkExistingUserOutVO, HttpStatus.OK);
+			} else {
+				LOG.error(this + " checkExistingUser: No user found with specified details. Please provide valid input. " + checkExistingUserInVO.getLastName());
+				checkExistingUserOutVO.setStatus("Error");
+				checkExistingUserOutVO.setErrorMessage("No user found with specified details. Please provide valid input.");
+				return new ResponseEntity<>(checkExistingUserOutVO, HttpStatus.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			LOG.error(this + " Error on checkExistingUser " + e.getMessage());
+			checkExistingUserOutVO.setStatus("Error");
+			checkExistingUserOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(checkExistingUserOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+		} finally {
+			if (oimClient != null) {
+				oimClient.logout();
+				oimClient = null;
+			}
+		}
+	}
+	
+	
+	
+	/**
+	 * @param ssaid
+	 * @return
+	 */
+	@RequestMapping(value = "checkExistingSSAID", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<CheckExistingSSAIDOutVO> checkExistingSSAID(@RequestParam("ssaid") String ssaid) {
+		OIMClient oimClient = null;
+		oimClient = oimLoginProxy.userLogin();
+		checkExistingSSAIDOutVO.setErrorMessage(null);
+		checkExistingSSAIDOutVO.setStatus(null);
+		checkExistingSSAIDOutVO.setSsaid(null);
+
+		if (ssaid == null || ssaid.isEmpty()) {
+			checkExistingSSAIDOutVO.setStatus("Error");
+			checkExistingSSAIDOutVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(checkExistingSSAIDOutVO, HttpStatus.NOT_FOUND);
+		}
+		
+		try {
+			if (oimClient == null) {
+				checkExistingUserOutVO.setStatus("Error");
+				checkExistingUserOutVO.setErrorMessage("System unavailable at the moment, please try again");
+				return new ResponseEntity<>(checkExistingSSAIDOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+			}				
+		if (userManagerService.checkExistingEmployeeNumber(oimClient, ssaid)) { //confirm with Mocx and RK about checking with employee number
+			checkExistingSSAIDOutVO.setStatus("Success");
+			checkExistingSSAIDOutVO.setSsaid("true");
+			return new ResponseEntity<>(checkExistingSSAIDOutVO, HttpStatus.OK);
+		}else {
+			checkExistingSSAIDOutVO.setStatus("Error");
+			checkExistingSSAIDOutVO.setErrorMessage("No user found for ssaid "+ssaid);
+			return new ResponseEntity<>(checkExistingSSAIDOutVO, HttpStatus.NOT_FOUND);
+		}	
+		} catch (Exception e) {
+			LOG.error(this + " Error on checkExistingSSAID " + e.getMessage());
+			checkExistingUsernameOutVO.setStatus("Error");
+			checkExistingUsernameOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(checkExistingSSAIDOutVO, HttpStatus.INTERNAL_SERVER_ERROR);
+		} finally {
+			if (oimClient != null) {
+				oimClient.logout();
+				oimClient = null;
+			}
+		}
+	}
+	
+	
+	@RequestMapping(value = "userdetails", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<UserDetailsVO> getUserDetails(@RequestParam("username") String username) throws Exception {
+		userDetailsVO.setErrorMessage(null);
+		userDetailsVO.setStatus(null);
+		userDetailsVO.setStatus(null);
+		userDetailsVO.setFirstName(null);
+		userDetailsVO.setLastName(null);
+		userDetailsVO.setCellPhoneNumber(null);
+		userDetailsVO.setDateOfBirth(null);
+		userDetailsVO.setIdNumber(null);
+		userDetailsVO.setMigratedUserFirstLogin(null);
+		userDetailsVO.setUserAccountLocked(null);
+		userDetailsVO.setIdType(null);
+		userDetailsVO.setEmployeeNumber(null);
+	
+		if (username == null || username.isEmpty()) {
+			userDetailsVO.setStatus("Error");
+			userDetailsVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(userDetailsVO, HttpStatus.NOT_FOUND);
+		}
+		DirContext dirContext = ovdLoginProxy.connect();
+		try {		
+		userDetailsVO = attributesUtil.getUserDetailsAttributes(dirContext,username);
+		
+		if(userDetailsVO.getStatus().equalsIgnoreCase("Success")) {			
+		 return new ResponseEntity<>(userDetailsVO, HttpStatus.OK);					
+		}else {
+			userDetailsVO.setStatus("Error");
+			userDetailsVO.setErrorMessage("No user found for username: " + username);
+			return new ResponseEntity<>(userDetailsVO, HttpStatus.NOT_FOUND);
+		}
+		} catch (Exception e) {
+			LOG.error(this + " Error on getUserStatus. ERROR: " + e.getMessage());
+			userStatusVO.setStatus("Error");
+			userStatusVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(userDetailsVO, HttpStatus.SERVICE_UNAVAILABLE);
+		}finally {
+			dirContext=null;
+		}
+	}
+		
+		
+	@RequestMapping(value = "getADUsername", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<GetADUsernameOutVO> getADUsername(GetADUsernameInVO getADUsernameInVO) throws Exception {
+		
+		OIMClient oimClient = null;
+		getADUsernameOutVO.setErrorMessage(null);
+		getADUsernameOutVO.setStatus(null);
+ 
+		if(validateADUsernameInVOUtil.validateADUsernameInVO(getADUsernameInVO).getStatus().equalsIgnoreCase("Error")) {
+			LOG.error("validateUserInVO " + userOutVO.getErrorMessage());
+			getADUsernameOutVO.setStatus("Error");
+			getADUsernameOutVO.setErrorMessage(userOutVO.getErrorMessage());
+			return new ResponseEntity<>(getADUsernameOutVO, HttpStatus.BAD_REQUEST);
+		}		
+		oimClient = oimLoginProxy.userLogin();
+		try {
+		if (oimClient == null) {
+			checkExistingUserOutVO.setStatus("Error");
+			checkExistingUserOutVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(getADUsernameOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+		}
+		
+		if (userManagerService.getADUsernameAttributes(oimClient, getADUsernameInVO).getStatus().equalsIgnoreCase("Error")) {
+		    getADUsernameOutVO.setStatus("Error");
+            getADUsernameOutVO.setErrorMessage("No username/alias could be retrieved");
+        	return new ResponseEntity<>(getADUsernameOutVO, HttpStatus.NOT_FOUND);
+		}else {
+			return new ResponseEntity<>(getADUsernameOutVO, HttpStatus.OK);
+		}
+		} catch (Exception e) {
+			LOG.error(this + " Error on getUserStatus. ERROR: " + e.getMessage());
+			userStatusVO.setStatus("Error");
+			userStatusVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(getADUsernameOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+		}finally {
+			if (oimClient != null) {
+				oimClient.logout();
+				oimClient = null;
+			}
+		}
+	}
+	
+	@RequestMapping(value = "getUserAccountLocked", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity<GetUserAccountLockedOutVO> getUserAccountLocked(@RequestParam("username") String username) throws Exception {
+		 getUserAccountLockedOutVO.setUserAccountStatus(null);	
+		if (username == null || username.isEmpty()) {
+			getUserAccountLockedOutVO.setStatus("Error");
+			getUserAccountLockedOutVO.setErrorMessage("Mandatory field : Username");
+			return new ResponseEntity<>(getUserAccountLockedOutVO, HttpStatus.NOT_FOUND);
+		}
+		DirContext dirContext = ovdLoginProxy.connect();
+		try {		
+			getUserAccountLockedOutVO = attributesUtil.getUserAccountLockedAttributes(dirContext,username);
+		
+		if(getUserAccountLockedOutVO.getStatus().equalsIgnoreCase("Success")) {			
+		 return new ResponseEntity<>(getUserAccountLockedOutVO, HttpStatus.OK);					
+		}else {
+			return new ResponseEntity<>(getUserAccountLockedOutVO, HttpStatus.NOT_FOUND);
+		}
+		} catch (Exception e) {
+			LOG.error(this + " Error on getUserAccountLocked. ERROR: " + e.getMessage());
+			userStatusVO.setStatus("Error");
+			userStatusVO.setErrorMessage("System unavailable at the moment, please try again");
+			return new ResponseEntity<>(getUserAccountLockedOutVO, HttpStatus.SERVICE_UNAVAILABLE);
+		}finally {
+			dirContext=null;
 		}
 	}
 
