@@ -355,22 +355,14 @@ public class UserManagerService {
 			} else {
 				statusOutVO.setStatus("Error");
 				statusOutVO.setErrorMessage("Exception on Provisioning the user");
-				LOG.error(this +" Exception while setting the properties ");
+				LOG.error(this +" Error on provisionUser ");
 			}
 		} catch (Exception ex) {
 			statusOutVO.setStatus("Error");
 			statusOutVO.setErrorMessage("Exception on Provisioning the user");
-			LOG.error(this +" Exception while setting the properties");
+			LOG.error(this +" Error on provisionUser "+ex.getMessage());
 		}
 		return statusOutVO;
 	}
 	
-	  public UserStatusVO ovdUserStatus(DirContext dirContext,UsernameVO usernameVO) {
-		  
-		 /* dirContext.search(name, matchingAttributes, attributesToReturn)*/
-	      
-	        return null;
-	    }
-
-
-}
+	}

@@ -46,7 +46,7 @@ public class AttributesUtil {
 	public UserDetailsVO getUserDetailsAttributes(DirContext dirContext,String username) {
 		
 		try {
-			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
+			String searchFilter = "(|(uid=" + username + ")(cn=" + username + "))"; 
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {
@@ -106,7 +106,7 @@ public class AttributesUtil {
 	public GetUserAccountLockedOutVO getUserAccountLockedAttributes(DirContext dirContext,String username) {
 		
 		try {
-			String searchFilter = "(|(uid=" + username + ")(omUserAlias=" + username + ")(cn=" + username + "))"; 
+			String searchFilter = "(|(uid=" + username + ")(cn=" + username + "))"; 
 			SearchResult searchResult = ovdLoginProxy.findUserAttributes(dirContext, searchBase, searchFilter);
 			Attributes attributes = null;
 			if (searchResult != null) {

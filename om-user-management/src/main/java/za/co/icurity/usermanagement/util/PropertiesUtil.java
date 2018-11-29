@@ -5,10 +5,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import za.co.icurity.usermanagement.proxy.OVDLoginProxy;
+
 public class PropertiesUtil {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(PropertiesUtil.class);
+
 	
 	public static Properties getProperties() throws Exception {
 		Properties properties = new Properties();
+		LOG.info("PropertiesUtil:  getProperties  Getting the properties values from domain home  ");
 		// uncomment below when deploying onto weblogic server
 		 String filePath = System.getenv("DOMAIN_HOME") + File.separator + "oimClient_environment.properties";
 		// comment below when deploying onto weblogic server
