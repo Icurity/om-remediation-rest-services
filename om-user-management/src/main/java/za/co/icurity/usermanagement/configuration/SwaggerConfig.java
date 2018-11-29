@@ -15,7 +15,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @Configuration
 @EnableSwagger2
-/*@EnableWebMvc*/
 public class SwaggerConfig extends WebMvcConfigurationSupport  {
 	
 	@Bean
@@ -35,9 +34,4 @@ public class SwaggerConfig extends WebMvcConfigurationSupport  {
 	        registry.addResourceHandler("/webjars/**")
 	                .addResourceLocations("classpath:/META-INF/resources/webjars/");
 	    }
-	    
-	   /* @Override
-	    protected void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
-	    configurer.enable();
-	    }*/
 }

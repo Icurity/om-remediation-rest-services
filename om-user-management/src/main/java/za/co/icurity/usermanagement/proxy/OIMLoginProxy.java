@@ -37,8 +37,8 @@ public class OIMLoginProxy {
 		OIMClient oimClient = null;
 		try {
 			properties = PropertiesUtil.getProperties();
-		} catch (Exception e) {
-			  LOG.warn("OIMClient getProperties " + e.getClass().getName() + " : " + e.getMessage());
+		}catch (Exception e) {
+			  LOG.warn(this+" OIMClient getProperties " + e.getClass().getName() + " : " + e.getMessage());
 	          return null;
 		}
 		Hashtable<String, String> env = new Hashtable<String, String>();
@@ -53,15 +53,14 @@ public class OIMLoginProxy {
 		try {
 			if(oimClient != null)
 			oimClient.login(properties.getProperty("oim_username"), properties.getProperty("oim_password").toCharArray());
-			 LOG.info(this+" Log in successful");
+			 LOG.info(this+" Log to oimClient successful");
 		} catch (LoginException ex) {
            /* if (logger.isLoggable(Level.SEVERE)) {
                 logger.logp(Level.SEVERE, CLASS_NAME, "createUser", "Error: " + ex.getMessage());
             }*/
-    	   System.out.println("LoginException "+ex);
             createUserOutVO.setStatus("Error");
             createUserOutVO.setErrorMessage("Exception while logging in. Please try again.");
-            LOG.error(createUserOutVO.getErrorMessage());
+            LOG.error(this+ "Error on login to oimClient "+createUserOutVO.getErrorMessage());
             return null;
         } catch (Exception e) {
            /* if (logger.isLoggable(Level.SEVERE)) {
@@ -70,7 +69,7 @@ public class OIMLoginProxy {
         	 System.out.println("LoginException "+e);
             createUserOutVO.setStatus("Error");
             createUserOutVO.setErrorMessage("Exception while logging in. Please try again.");
-            LOG.error(createUserOutVO.getErrorMessage());
+            LOG.error(this+ "Error on login to oimClient "+createUserOutVO.getErrorMessage());
             return null;
         }
 		return oimClient;
